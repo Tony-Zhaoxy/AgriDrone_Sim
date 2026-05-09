@@ -1,0 +1,143 @@
+%YAML:1.0
+# =============================================================================
+# d455_orbslam3.yaml — ORB_SLAM3 stereo-inertial configuration for
+#                       Intel RealSense D455 on Jetson Orin NX 16 GB
+#
+# Mode: Stereo-Inertial (both IR cameras + built-in IMU)
+#
+# ⚠ IMPORTANT — CALIBRATE BEFORE FLIGHT
+#   The intrinsics and extrinsics below are factory-nominal values for the
+#   D455 at 640×480 @ 30 Hz.  Before flying, re-calibrate with Kalibr:
+#     kalibr_calibrate_cameras --target april_grid.yaml \
+#       --bag calib_stereo.bag \
+#       --models pinhole-radtan pinhole-radtan \
+#       --topics /d455/infra1/image_rect_raw /d455/infra2/image_rect_raw
+#     kalibr_calibrate_imu_camera --target april_grid.yaml \
+#       --bag calib_imu.bag \
+#       --cam camchain.yaml --imu imu.yaml
+#   Then update Camera.fx/fy/cx/cy, Camera2.*, Stereo.T_c1_c2 and IMU.T_b_c1.
+#
+#   Disable the D455 IR dot projector during calibration AND flight:
+#     ros2 param set /camera/camera depth_module.emitter_enabled 0
+# =============================================================================
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters (left IR / infra1 — primary camera)
+#--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
+
+# Focal lengths and principal point (pixels) — 640×480 resolution
+Camera.fx: 379.0
+Camera.fy: 379.0
+Camera.cx: 320.0
+Camera.cy: 240.0
+
+# Radial-tangential distortion coefficients
+# D455 lenses are close to rectilinear at this resolution; use zeros if
+# launching from rect topics (/d455/infra1/image_rect_raw).
+Camera.k1:  0.0
+Camera.k2:  0.0
+Camera.p1:  0.0
+Camera.p2:  0.0
+
+Camera.width:  640
+Camera.height: 480
+Camera.fps:    30
+
+# 0 = grayscale (IR cameras produce grayscale; RGB=0 is correct)
+Camera.RGB: 0
+
+#--------------------------------------------------------------------------------------------
+# Stereo Parameters
+#--------------------------------------------------------------------------------------------
+# Baseline × fx  (D455 stereo baseline ≈ 95.05 mm)
+Camera.bf: 36.07       # 0.09505 * 379.0
+
+# Points with a stereo depth greater than ThDepth * baseline are considered
+# far points and initialised with monocular.  40 × 95 mm = 3.8 m.
+Stereo.ThDepth: 40.0
+
+# Physical baseline in metres (used by ORB_SLAM3 for scale initialisation)
+Stereo.b: 0.09505
+
+# Transformation from right camera (cam2 / infra2) to left camera (cam1 / infra1)
+# in left-camera coordinates:  p_c1 = T_c1_c2 * p_c2
+#
+# For a factory-rectified stereo pair the rotation is identity and the
+# translation is purely along the x-axis (baseline).
+# Replace with Kalibr output after calibration.
+Stereo.T_c1_c2: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [ 0.9999934081388363, 8.402919600071816e-05, 0.003629961152478668, -0.09446666891392656,
+           -7.976974307436578e-05, 0.9999993082149108, -0.0011735444122783836, -0.00018527824054211835,
+           -0.0036300572533191034, 0.0011732471153680455, 0.9999927230612948, 0.0005590368893770679,
+           0.0000,  0.0000,  0.0000,  1.0000 ]
+
+#--------------------------------------------------------------------------------------------
+# Camera 2 Parameters (right IR / infra2)
+#--------------------------------------------------------------------------------------------
+Camera2.fx: 379.0
+Camera2.fy: 379.0
+Camera2.cx: 320.0
+Camera2.cy: 240.0
+
+Camera2.k1: 0.0
+Camera2.k2: 0.0
+Camera2.p1: 0.0
+Camera2.p2: 0.0
+
+#--------------------------------------------------------------------------------------------
+# IMU Parameters
+# D455 IMU: Bosch BMI055 (accel) + BMI055 (gyro)
+# Noise values from datasheet; refine with allan_variance_ros after calibration.
+#--------------------------------------------------------------------------------------------
+IMU.NoiseGyro:   1.7e-4    # rad/s/√Hz  (BMI055 datasheet)
+IMU.NoiseAcc:    2.0e-3    # m/s²/√Hz  (BMI055 datasheet)
+IMU.GyroWalk:    1.9e-5    # rad/s²/√Hz (bias instability proxy)
+IMU.AccWalk:     3.0e-3    # m/s³/√Hz  (bias instability proxy)
+
+IMU.Frequency: 200         # D455 IMU default rate (Hz)
+
+# T_b_c1: transformation from left IR camera (cam1) to IMU body frame.
+# Rows: IMU frame  Columns: camera frame
+# Approximate values — MUST be replaced with Kalibr output before flight.
+# (Matches the T_cam0_imu entry in d455_vio.yaml, inverted)
+IMU.T_b_c1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [  0.9998, -0.0020,  0.0200,  0.0053,
+            0.0021,  0.9999, -0.0030, -0.0052,
+           -0.0200,  0.0031,  0.9998,  0.0183,
+            0.0000,  0.0000,  0.0000,  1.0000 ]
+
+#--------------------------------------------------------------------------------------------
+# ORB Feature Extractor Parameters
+# Higher nFeatures = more robust tracking but higher CPU.
+# On Jetson Orin NX 16 GB, 1000 features at 30 Hz is comfortable.
+#--------------------------------------------------------------------------------------------
+ORBextractor.nFeatures:    1000
+ORBextractor.scaleFactor:  1.2
+ORBextractor.nLevels:      8
+ORBextractor.iniThFAST:    20    # initial FAST corner threshold
+ORBextractor.minThFAST:     7    # fallback threshold if iniThFAST yields too few
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters (Pangolin)
+# Set Viewer.on: 0 to disable the GUI window on a headless Jetson.
+#--------------------------------------------------------------------------------------------
+Viewer.on: 1
+
+Viewer.KeyFrameSize:     0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth:    0.9
+Viewer.PointSize:         2.0
+Viewer.CameraSize:        0.08
+Viewer.CameraLineWidth:   3.0
+
+Viewer.ViewpointX:   0.0
+Viewer.ViewpointY:  -0.7
+Viewer.ViewpointZ:  -3.5
+Viewer.ViewpointF: 500.0

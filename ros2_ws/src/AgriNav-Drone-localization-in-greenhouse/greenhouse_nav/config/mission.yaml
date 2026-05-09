@@ -1,0 +1,143 @@
+# =============================================================================
+# mission.yaml — Tunable parameters for all greenhouse_nav nodes
+# =============================================================================
+
+# ── Mission parameters ────────────────────────────────────────────────────── #
+mission_executor:
+  ros__parameters:
+    takeoff_height:    1.50
+    mission_distance:  10.0
+    position_tol:      0.30
+    yaw_tol_deg:       8.0
+    descent_speed:     0.30
+    hover_settle_sec:  3.0
+    uturn_settle_sec:  2.0
+    row_spacing_m:     2.0     # lateral shift distance for each U-turn
+    uturn_speed:       0.25    # m/s during lateral translation
+    require_marker_init: true  # wait for MARKER_INIT before starting mission
+
+# ── Marker detector ───────────────────────────────────────────────────────── #
+# Marker ID convention:
+#   0  — MARKER_INIT        : VIO confirmed; start mission
+#   1  — MARKER_UTURN_LEFT  : end of row; U-turn rotating LEFT
+#   2  — MARKER_UTURN_RIGHT : end of row; U-turn rotating RIGHT
+#   10 — MARKER_LAND        : stop and land
+#
+# aruco_dict options (ArUco):   DICT_4X4_50, DICT_4X4_100, DICT_5X5_50, ...
+# aruco_dict options (AprilTag): DICT_APRILTAG_16h5, DICT_APRILTAG_36h11, ...
+marker_detector:
+  ros__parameters:
+    marker_id_init:        0
+    marker_id_uturn_left:  1
+    marker_id_uturn_right: 2
+    marker_id_land:        10
+
+    marker_size_m:           0.15    # physical side length of the printed marker
+    aruco_dict:        DICT_4X4_50   # dictionary to use for detection
+    detection_cooldown_sec:  2.0     # minimum seconds between same event
+    min_consecutive:         2       # consecutive frames required to trigger
+
+    # D455 colour camera intrinsics (run camera_calibration to update these)
+    fx: 426.03179931640625
+    fy: 425.6170349121094
+    cx: 429.2153015136719
+    cy: 235.39886474609375
+
+# ── DWA planner ───────────────────────────────────────────────────────────── #
+dwa_planner:
+  ros__parameters:
+    max_fwd_speed: 0.40
+    max_lat_speed: 0.25
+    max_accel: 0.25
+    cruise_speed: 0.30
+    takeoff_height: 1.50
+
+    v_samples: 7
+    vy_samples: 7
+    sim_time: 2.0
+    sim_steps: 20
+
+    w_goal: 3.5
+    w_clearance: 1.5
+    w_speed: 0.8
+    w_smooth: 1.0
+    w_lateral: 2.5
+    w_heading: 1.5
+
+    hard_stop_dist: 0.55
+    slow_zone_dist: 1.50
+    goal_tolerance: 0.25
+
+    enable_recovery_yaw: true
+    stuck_time_sec: 1.8
+    min_progress_m: 0.06
+
+    recovery_primary_side: right
+    recovery_yaw_levels_deg: [15.0, 25.0]
+    recovery_yaw_tol_deg: 4.0
+    recovery_hold_max_sec: 2.0
+    recovery_cooldown_sec: 1.0
+    recovery_scan_dist_m: 2.0
+    recovery_step_m: 0.10
+
+
+# ── Occupancy grid ────────────────────────────────────────────────────────── #
+occupancy_grid_builder:
+  ros__parameters:
+    grid_resolution_m:   0.10
+    grid_size_m:        10.00
+    inflation_radius_m:  0.20
+
+    min_depth_m:         0.20
+    max_depth_m:         6.00
+    use_min_depth_per_col: false
+
+    camera_tilt_deg:    10.0
+
+    fx: 426.03179931640625
+    fy: 425.6170349121094
+    cx: 429.2153015136719
+    cy: 235.39886474609375
+
+# ── Collision prevention (PX4 CP bridge) ─────────────────────────────────── #
+obstacle_avoidance_cp:
+  ros__parameters:
+    hfov_deg:          87.0
+    min_dist_cm:       20
+    max_dist_cm:       500
+    row_frac_lo:       0.20
+    row_frac_hi:       0.80
+    depth_percentile:  10
+
+# ── ORB_SLAM3 bridge ──────────────────────────────────────────────────────── #
+# Drop-in replacement for vio_bridge.  Run ONE of them, not both.
+# Requires an ORB_SLAM3 ROS 2 wrapper (e.g. suchetanrs/ORB-SLAM3-ROS2-Docker
+# or Mechazo11/ros2_orb_slam3) publishing camera_pose on the topic below.
+orb_slam3_bridge:
+  ros__parameters:
+    pose_topic:            /orb_slam3/camera_pose
+
+    # 'ros'     — wrapper publishes in ROS REP-103 (x=fwd, y=left, z=up) [default]
+    # 'optical' — wrapper publishes raw ORB_SLAM3 output (x=right, y=down, z=fwd)
+    coord_convention:      ros
+
+    # Fixed position/orientation variance forwarded to PX4 EKF2.
+    # Increase if EKF2 rejects the measurements; decrease for tighter fusion.
+    pos_variance:          0.02   # m²  (~14 cm 1-σ)
+    rot_variance:          0.01   # rad²
+
+    # If the pose topic is silent for this long, declare tracking lost
+    # and stop forwarding odometry (EKF2 will coast on IMU).
+    tracking_timeout_sec:  0.50
+
+    # Position jump threshold for relocalization/loop-closure detection (metres).
+    # Jumps above this reset the velocity estimator window.
+    max_jump_m:            0.50
+
+# ── Safety monitor ────────────────────────────────────────────────────────── #
+safety_monitor:
+  ros__parameters:
+    vio_timeout_sec:   1.0
+    max_altitude_m:    2.20
+    min_clearance_m:   0.15
+    enable_range:      true

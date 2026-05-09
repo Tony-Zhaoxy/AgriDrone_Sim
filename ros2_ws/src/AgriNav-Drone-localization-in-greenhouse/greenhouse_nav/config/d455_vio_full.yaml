@@ -1,0 +1,78 @@
+openvins:
+  ros__parameters:
+    verbosity: "WARNING"
+
+    use_stereo: true
+    max_cameras: 2
+
+    topic_camera:
+      - "/d455/d455/infra1/image_rect_raw"
+      - "/d455/d455/infra2/image_rect_raw"
+    topic_imu: "/d455/d455/imu"
+
+    cam0_wh:
+      - 848
+      - 480
+    cam0_intrinsics:
+      - 422.1636828774358
+      - 423.0720166234082
+      - 432.9089988438718
+      - 247.12317592048043
+    cam0_distortion_coeffs:
+      - -0.010272329588382038
+      - 0.003334796058752737
+      - 0.0011237261132375634
+      - 0.0021410383130326402
+    cam0_distortion_model: "radtan"
+
+    T_cam0_imu:
+      - [0.9999679051307678, 0.0025364710431179495, -0.007599672560781851, 0.026725074499841458]
+      - [-0.002624359162230151, 0.9999295385873217, -0.011577158525884668, 0.0014661952849273818]
+      - [0.007569771949754832, 0.011596731228810537, 0.9999041025905611, -0.04693020638922825]
+      - [0.0, 0.0, 0.0, 1.0]
+
+    cam1_wh:
+      - 848
+      - 480
+    cam1_intrinsics:
+      - 422.4160817773478
+      - 423.1700063814248
+      - 432.35578352326945
+      - 247.7772823010718
+    cam1_distortion_coeffs:
+      - -0.008406769340110401
+      - 0.0032113388924795176
+      - 0.0014854561224943582
+    cam1_distortion_model: "radtan"
+
+    T_cam1_imu:
+      - [0.9999885709364896, 0.0026625732820941684, -0.003970982235510564, -0.06791200220492552]
+      - [-0.0027130079931863642, 0.9999150352381992, -0.01274997616546079, 0.0013338588592418821]
+      - [0.003936697096065315, 0.012760603751719182, 0.9999108307283533, -0.04646612133276091]
+      - [0.0, 0.0, 0.0, 1.0]
+
+    gyroscope_noise_density: 1.6e-4
+    accelerometer_noise_density: 2.0e-3
+    gyroscope_random_walk: 2.2e-6
+    accelerometer_random_walk: 3.0e-5
+
+    num_pts: 250
+    fast_threshold: 20
+    grid_x: 5
+    grid_y: 4
+    min_px_dist: 10
+    use_klt: true
+    use_aruco: false
+
+    max_clones: 11
+    max_slam: 75
+    max_slam_in_update: 25
+    max_msckf_in_update: 40
+
+    init_window_time: 1.0
+    init_imu_thresh: 1.5
+
+    publish_path: true
+    publish_points: false
+    output_pose_topic: "/poseimu"
+    output_path_topic: "/pathimu"
